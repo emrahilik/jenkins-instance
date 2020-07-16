@@ -54,7 +54,7 @@ def slavePodTemplate = """
     podTemplate(name: k8slabel, label: k8slabel, yaml: slavePodTemplate, showRawYaml: false) {
       node(k8slabel) {
         stage("Pull SCM") {
-            git 'https://github.com/emrahilik/jenkins-instance.git'
+            git 'https://github.com/fsadykov/jenkins-instance.git'
         }
         stage("Generate Variables") {
             println("Generate Variables")
@@ -70,7 +70,7 @@ def slavePodTemplate = """
                                 sh """
                                 #!/bin/bash
                                 export AWS_DEFAULT_REGION=${aws_region}
-                                terraform init
+                                source set-env.sh dev.tfvars
                                 terraform apply -auto-approve 
                                 """
                             } else {
@@ -78,8 +78,8 @@ def slavePodTemplate = """
                                 sh """
                                 #!/bin/bash
                                 export AWS_DEFAULT_REGION=${aws_region}
-                                terraform init
-                                terraform plan 
+                                source set-env.sh dev.tfvars
+                                terraform plan
                                 """
                             }
                         }
@@ -90,7 +90,7 @@ def slavePodTemplate = """
                             sh """
                             #!/bin/bash
                             export AWS_DEFAULT_REGION=${aws_region}
-                            terraform init
+                            source set-env.sh dev.tfvars
                             terraform destroy -auto-approve 
                             """
                         } else {
@@ -102,5 +102,4 @@ def slavePodTemplate = """
         }
       }
     }
-
 
