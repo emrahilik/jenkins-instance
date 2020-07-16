@@ -46,14 +46,15 @@ def slavePodTemplate = """
     """
     properties([
         parameters([
-            booleanParam(defaultValue: false, description: 'Please select to apply the changes ', name: 'terraformApply'), 
-            booleanParam(defaultValue: false, description: 'Please select to destroy all', name: 'terraformDestroy')
+            booleanParam(defaultValue: false, description: 'Please select to apply the changes ', name: 'terraformApply'),
+            booleanParam(defaultValue: false, description: 'Please select to destroy all ', name: 'terraformDestroy'), 
+            choice(choices: ['us-west-2', 'us-west-1', 'us-east-2', 'us-east-1', 'eu-west-1'], description: 'Please select the region', name: 'aws_region')
         ])
     ])
     podTemplate(name: k8slabel, label: k8slabel, yaml: slavePodTemplate, showRawYaml: false) {
       node(k8slabel) {
         stage("Pull SCM") {
-            git 'https://github.com/fsadykov/jenkins-instance.git'
+            git 'https://github.com/emrahilik/jenkins-instance.git'
         }
         stage("Generate Variables") {
             println("Generate Variables")
@@ -66,14 +67,32 @@ def slavePodTemplate = """
                         if (!params.terraformDestroy) {
                             if (params.terraformApply) {
                                 println("Applying the changes")
+                                sh """
+                                #!/bin/bash
+                                export AWS_DEFAULT_REGION=${aws_region}
+                                terraform init
+                                terraform apply -auto-approve 
+                                """
                             } else {
                                 println("Planing the changes")
+                                sh """
+                                #!/bin/bash
+                                export AWS_DEFAULT_REGION=${aws_region}
+                                terraform init
+                                terraform plan 
+                                """
                             }
                         }
                     }
                     stage("Terraform Destroy") {
                         if (params.terraformDestroy) {
                             println("Destroying the all")
+                            sh """
+                            #!/bin/bash
+                            export AWS_DEFAULT_REGION=${aws_region}
+                            terraform init
+                            terraform destroy -auto-approve 
+                            """
                         } else {
                             println("Skiping the destroy")
                         }
@@ -83,3 +102,5 @@ def slavePodTemplate = """
         }
       }
     }
+
+
