@@ -17,6 +17,15 @@ def slavePodTemplate = """
                   - jenkins-jenkins-master
               topologyKey: "kubernetes.io/hostname"
         containers:
+        - name: buildtools
+          image: fuchicorp/buildtools
+          imagePullPolicy: IfNotPresent
+          command:
+          - cat
+          tty: true
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
         - name: docker
           image: docker:latest
           imagePullPolicy: IfNotPresent
@@ -49,20 +58,27 @@ def slavePodTemplate = """
         stage("Generate Variables") {
             println("Generate Variables")
         }
-        stage("Terraform Apply/plan") {
-            if (!terraformDestroy) {
-                if (params.terraformApply) {
-                    println("Applying the changes")
-                } else {
-                    println("Planing the changes")
+        container("buildtools") {
+            dir('deployments/terraform') {
+                withCredentials([usernamePassword(credentialsId: 'packer-build-creds', 
+                    passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                    stage("Terraform Apply/plan") {
+                        if (!params.terraformDestroy) {
+                            if (params.terraformApply) {
+                                println("Applying the changes")
+                            } else {
+                                println("Planing the changes")
+                            }
+                        }
+                    }
+                    stage("Terraform Destroy") {
+                        if (params.terraformDestroy) {
+                            println("Destroying the all")
+                        } else {
+                            println("Skiping the destroy")
+                        }
+                    }
                 }
-            }
-        }
-        stage("Terraform Destroy") {
-            if (params.terraformDestroy) {
-                println("Destroying the all")
-            } else {
-                println("Skiping the destroy")
             }
         }
       }
